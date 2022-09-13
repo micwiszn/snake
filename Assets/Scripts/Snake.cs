@@ -188,6 +188,7 @@ public class Snake : MonoBehaviour
         for(int i = length; i < _segments.Count; i++)
         {
             _segments[i].gameObject.SetActive(false);
+            _segments[i].Position = Vector2Int.one * 1000;
         }
     }
     

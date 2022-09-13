@@ -20,15 +20,16 @@ public class Snakesegment : MonoBehaviour
         set => _direction = value;
     }
 
-    //void OnEnable()
     void Start()
     {
         _rect = GetComponent<RectTransform>();
         _rect.sizeDelta = Vector2.one * Playspace.instance.TileSize;
+        gameObject.SetActive(false);
     }
 
     public void Draw()
     {
+        gameObject.SetActive(true);
         _rect.transform.localPosition = Playspace.instance.PlayspaceToLocal(_position.x, _position.y);
         _rect.transform.localEulerAngles = Vector3.forward*_direction;
     }

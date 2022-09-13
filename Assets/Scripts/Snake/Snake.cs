@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Snake : MonoBehaviour
 {
@@ -13,19 +14,31 @@ public class Snake : MonoBehaviour
     public Snakesegment snakePrefab;
     public Snakesegment _head;
 
-    private Vector2Int _direction = new Vector2Int(0, 1);
+    private Vector2Int _direction;
     private Vector2Int _newDirection;
     private Vector2Int _headPosition;
     private Vector2Int[] _headHistory;
     private int[] _directionHistory;
-    
-    public List<Snakesegment> _segments;
+
     bool reverse = false;
     bool _reverseFired = false;
     private int _snekDelta = 0;
 
-    public List<Edible> edibles;
+    private List<Snakesegment> _segments;
+    public List<Snakesegment> Segments
+    {
+        set => _segments = value;
+        get => _segments;
+    }
+    private List<Edible> _edibles;
+    public List<Edible> Edibles
+    {
+        set => _edibles = value;
+        get => _edibles;
+    }
 
+    public UnityEvent onSnakeScore;
+    public UnityEvent onSnakeDead;
     private Vector2Int GetVector(float angle)
     {
         angle *= Mathf.Deg2Rad;
@@ -33,27 +46,50 @@ public class Snake : MonoBehaviour
         return new Vector2Int((int)vector.x, (int)vector.y);
     }
 
+    private void Purge()
+    {
+        for (int i = 0; i < _segments.Count; i++)
+            Destroy(_segments[i].gameObject);
+      
+        for (int i = 0; i < _edibles.Count; i++)
+            Destroy(_edibles[i].gameObject);
+
+        _segments.Clear();
+        _edibles.Clear();
+
+    }
+
+    public void Init()
+    {
+        length = 5;
+        _direction = Vector2Int.right;
+        _headPosition = Playspace.instance.tileDimensions / 2;
+        _headHistory = new Vector2Int[length];
+        _directionHistory = new int[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            _segments.Add(Instantiate(snakePrefab, transform));
+            _headHistory[length - 1 - i] = _headPosition + Vector2Int.left * (1 + i);
+            _directionHistory[length - 1 - i] = 0;
+        }
+        _newDirection = _direction;
+    }
+
     // Start is called before the first frame update
-    protected void Start()
+    void Start()
     {
         instance = this;
         if (!Playspace.instance)
             return;
 
-        _headPosition = Playspace.instance.tileDimensions / 2;    
-        _headHistory = new Vector2Int[length];
-        _directionHistory = new int[length];
-
-        for(int i = 0; i < length; i++)
-        { 
-            _segments.Add(Instantiate(snakePrefab, transform));
-            _headHistory[length-1-i] =_headPosition + Vector2Int.left*(1+i);
-            _directionHistory[length-1-i] = 0;
-        }
-        _newDirection = _direction;
-
+        _segments = new List<Snakesegment>();
+        _edibles = new List<Edible>();
         GameCore.OnGameTick += UpdatePosition;
         GameCore.OnGameTick += CheckEdibles;
+
+        Init();
+
     }
 
     int GetRotation()
@@ -81,7 +117,7 @@ public class Snake : MonoBehaviour
         {
             _segments[i].Position = _headHistory[length - i - 1];
             _segments[i].Direction = _directionHistory[length - i - 1];
-            _segments[i].Draw();
+            _segments[i]?.Draw();
         }
         _head.Draw();
     }
@@ -90,7 +126,10 @@ public class Snake : MonoBehaviour
     {
         if (CheckCollision())
         {
-            Debug.Log("collision!");
+            onSnakeDead.Invoke();
+            Purge();
+            Init();
+            return;
         }
         _direction = _newDirection;
 
@@ -188,7 +227,6 @@ public class Snake : MonoBehaviour
         for(int i = length; i < _segments.Count; i++)
         {
             _segments[i].gameObject.SetActive(false);
-            _segments[i].Position = Vector2Int.one * 1000;
         }
     }
     
@@ -206,32 +244,49 @@ public class Snake : MonoBehaviour
         
         Array.Reverse(_headHistory);
         Array.Reverse(_directionHistory);
-        //_segments.Reverse();
         DrawSnek();
     }
 
+    IEnumerator TemporaryTimechange(float change, float duration)
+    {
+        GameCore.instance.Delay = change;
+        yield return new WaitForSeconds(duration);
+        GameCore.instance.Delay = 0;
+    }
+    
     void CheckEdibles()
     {
-        for(int i = 0; i < edibles.Count; i++)
+        for(int i = 0; i < _edibles.Count; i++)
         {
-            if ((edibles[i].transform.localPosition - _head.transform.localPosition).magnitude < 0.1f)
+            if ((_edibles[i].transform.localPosition - _head.transform.localPosition).magnitude < 0.1f)
             {
-                switch (edibles[i].type)
+                switch (_edibles[i].type)
                 {
                     case EdibleType.Reverse:
                         Reverse();
                         reverse = true;
                         break;
+
                     case EdibleType.Short:
-                        _snekDelta -= 2;
+                        if(length>5)
+                            _snekDelta--;
                         break;
+
+                    case EdibleType.Turbo:
+                        StartCoroutine(TemporaryTimechange(-0.1f, 7f));
+                        break;
+
+                    case EdibleType.Slow:
+                        StartCoroutine(TemporaryTimechange(0.1f, 7f));
+                        break;
+
                     default:
-                        _snekDelta += 2;
+                        _snekDelta++;
                         break;
                 }
-
-                Destroy(edibles[i].gameObject);
-                edibles.RemoveAt(i);
+                onSnakeScore.Invoke();
+                Destroy(_edibles[i].gameObject);
+                _edibles.RemoveAt(i);
                 return;
             }
         }
@@ -241,16 +296,17 @@ public class Snake : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
+#if UNITY_EDITOR
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            Debug.Log("bigger snek");
-            _snekDelta += 2;
+            Debug.Log("biggur snek");
+            _snekDelta++;
         }
         
         if (Input.GetKeyDown(KeyCode.F))
         {
             Debug.Log("smoller snek");
-            _snekDelta -= 2;
+            _snekDelta--;
         }
         
         if (Input.GetKeyDown(KeyCode.R))
@@ -259,6 +315,7 @@ public class Snake : MonoBehaviour
             Reverse();
             reverse = true;
         }
+#endif
 
 
         if (Math.Abs(_direction.y) == 0)

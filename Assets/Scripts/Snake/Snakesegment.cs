@@ -20,6 +20,13 @@ public class Snakesegment : MonoBehaviour
         set => _direction = value;
     }
 
+    private void OnDisable()
+    {
+        _position = Vector2Int.one * 1000;
+        _rect.transform.localPosition = Playspace.instance.PlayspaceToLocal(_position.x, _position.y);
+        _rect.transform.localEulerAngles = Vector3.forward * _direction;
+    }
+
     void Start()
     {
         _rect = GetComponent<RectTransform>();

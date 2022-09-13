@@ -5,8 +5,24 @@ using UnityEngine.Events;
 
 public class GameCore : MonoBehaviour
 {
-    public float timeframe = 0.25f;
+    public static GameCore instance;
     [SerializeField]
+    private float _timeframe = 0.25f;
+
+    [SerializeField]
+    private float _extraDelay = 0;
+
+    public float Delay
+    {
+        set
+        {
+            if (value < _timeframe)
+                _extraDelay = value;
+            else
+                _extraDelay = _timeframe * 0.5f;
+        }
+    }
+
     private bool _gameRun = false;
 
     public delegate void GameTick();
@@ -16,6 +32,7 @@ public class GameCore : MonoBehaviour
 
     private void Start()
     {
+        instance = this;
         StartClock();
     }
 
@@ -30,7 +47,7 @@ public class GameCore : MonoBehaviour
         _gameRun = true;
         while (_gameRun)
         {
-            yield return new WaitForSeconds(timeframe);
+            yield return new WaitForSeconds(_timeframe + _extraDelay);
             if (OnGameTick != null)
             {
                 OnGameTick();

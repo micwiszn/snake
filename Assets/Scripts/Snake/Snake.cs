@@ -23,6 +23,7 @@ public class Snake : MonoBehaviour
     bool reverse = false;
     bool _reverseFired = false;
     private int _snekDelta = 0;
+    private float timer = 0;
 
     private List<Snakesegment> _segments;
     public List<Snakesegment> Segments
@@ -39,13 +40,13 @@ public class Snake : MonoBehaviour
 
     public UnityEvent onSnakeScore;
     public UnityEvent onSnakeDead;
-    private Vector2Int GetVector(float angle)
+
+    public Vector2Int GetVector(float angle)
     {
         angle *= Mathf.Deg2Rad;
-        var vector= new  Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
+        var vector = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
         return new Vector2Int((int)vector.x, (int)vector.y);
     }
-
     private void Purge()
     {
         for (int i = 0; i < _segments.Count; i++)
@@ -76,22 +77,6 @@ public class Snake : MonoBehaviour
         _newDirection = _direction;
     }
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        instance = this;
-        if (!Playspace.instance)
-            return;
-
-        _segments = new List<Snakesegment>();
-        _edibles = new List<Edible>();
-        GameCore.OnGameTick += UpdatePosition;
-        GameCore.OnGameTick += CheckEdibles;
-
-        Init();
-
-    }
-
     int GetRotation()
     {
         int angle = 0;
@@ -115,8 +100,8 @@ public class Snake : MonoBehaviour
     {
         for (int i = 0; i < length; i++)
         {
-            _segments[i].Position = _headHistory[length - i - 1];
-            _segments[i].Direction = _directionHistory[length - i - 1];
+            _segments[i].Position = _headHistory[i];
+            _segments[i].Direction = _directionHistory[i];
             _segments[i]?.Draw();
         }
         _head.Draw();
@@ -258,7 +243,7 @@ public class Snake : MonoBehaviour
     {
         for(int i = 0; i < _edibles.Count; i++)
         {
-            if ((_edibles[i].transform.localPosition - _head.transform.localPosition).magnitude < 0.1f)
+            if (_edibles[i].Position.Equals(_headPosition))
             {
                 switch (_edibles[i].type)
                 {
@@ -291,8 +276,46 @@ public class Snake : MonoBehaviour
             }
         }
     }
-    
-    
+
+    void ResetTimer()
+    {
+        timer = 0;
+    }
+    // Start is called before the first frame update
+    void Start()
+    {
+        instance = this;
+        if (!Playspace.instance)
+            return;
+
+        _segments = new List<Snakesegment>();
+        _edibles = new List<Edible>();
+
+        GameCore.OnGameTick += UpdatePosition;
+        GameCore.OnGameTick += CheckEdibles;
+        GameCore.OnGameTick += ResetTimer;
+
+        Init();
+
+    }
+    public void Update()
+    {
+        timer += Time.deltaTime;
+
+        var targetPos = Playspace.instance.PlayspaceToLocal(_headPosition + _direction);
+        var lastPos = Playspace.instance.PlayspaceToLocal(_headPosition);
+        var progress = timer / (GameCore.instance.Timeframe + GameCore.instance.Delay);
+        _head.Rect.transform.localPosition = Vector2.Lerp(lastPos, targetPos, progress);
+
+        for (int i = 0; i < length; i++)
+        {
+            var vector = GetVector(_directionHistory[i]);
+            targetPos = Playspace.instance.PlayspaceToLocal(_headHistory[i]+vector);
+            lastPos = Playspace.instance.PlayspaceToLocal(_headHistory[i]);
+            _segments[i].Rect.transform.localPosition = Vector2.Lerp(lastPos, targetPos, progress);
+        }
+
+    }
     // Update is called once per frame
     void LateUpdate()
     {

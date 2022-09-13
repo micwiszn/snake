@@ -8,6 +8,10 @@ public class GameCore : MonoBehaviour
     public static GameCore instance;
     [SerializeField]
     private float _timeframe = 0.25f;
+    public float Timeframe
+    {
+        get => _timeframe;
+    }
 
     [SerializeField]
     private float _extraDelay = 0;
@@ -21,6 +25,7 @@ public class GameCore : MonoBehaviour
             else
                 _extraDelay = _timeframe * 0.5f;
         }
+        get => _extraDelay;
     }
 
     private bool _gameRun = false;

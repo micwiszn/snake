@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Snakesegment : MonoBehaviour
@@ -8,6 +9,10 @@ public class Snakesegment : MonoBehaviour
     private int _direction;
 
     private RectTransform _rect;
+    public RectTransform Rect
+    {
+        get => _rect;
+    }
 
     public Vector2Int Position
     {
@@ -19,7 +24,6 @@ public class Snakesegment : MonoBehaviour
         get => _direction;
         set => _direction = value;
     }
-
     private void OnDisable()
     {
         _position = Vector2Int.one * 1000;
@@ -37,7 +41,7 @@ public class Snakesegment : MonoBehaviour
     public void Draw()
     {
         gameObject.SetActive(true);
-        _rect.transform.localPosition = Playspace.instance.PlayspaceToLocal(_position.x, _position.y);
-        _rect.transform.localEulerAngles = Vector3.forward*_direction;
+        //_rect.transform.localEulerAngles = Vector3.forward*_direction;
+        //_rect.transform.localPosition = Playspace.instance.PlayspaceToLocal(_position.x, _position.y);
     }
 }

@@ -40,7 +40,11 @@ public class PrefabSpawner : MonoBehaviour
         {
             var spawn = factory.GetNewInstance();
             var randomPos = new Vector2Int(Random.Range(1, _playspaceSize.x - 1), Random.Range(1, _playspaceSize.y - 1));
-  
+            var edi = spawn.GetComponent<Edible>();
+
+            if (edi)
+                edi.Position = randomPos;
+
             spawn.transform.localPosition = Playspace.instance.PlayspaceToLocal(randomPos);
             spawn.Spawner = this;
 

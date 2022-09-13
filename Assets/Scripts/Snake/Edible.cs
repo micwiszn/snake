@@ -15,7 +15,12 @@ public class Edible : MonoBehaviour
 {
     public EdibleType type;
     private Snake snake;
-    private Vector2Int position;
+    private Vector2Int _position;
+    public Vector2Int Position
+    {
+        set => _position = value;
+        get => _position;
+    }
 
     private void OnEnable()
     {

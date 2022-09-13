@@ -6,20 +6,25 @@ using UnityEngine;
 
 public class Snake : MonoBehaviour
 {
+    [SerializeField]
+    private int length = 5;
+
+    public static Snake instance;
     public Snakesegment snakePrefab;
     public Snakesegment _head;
 
-    public Vector2Int _direction = new Vector2Int(0, 1);
+    private Vector2Int _direction = new Vector2Int(0, 1);
     private Vector2Int _newDirection;
     private Vector2Int _headPosition;
-    public Vector2Int[] _headHistory;
-    public int[] _directionHistory;
+    private Vector2Int[] _headHistory;
+    private int[] _directionHistory;
     
     public List<Snakesegment> _segments;
     bool reverse = false;
     bool _reverseFired = false;
     private int _snekDelta = 0;
-    public int length = 5;
+
+    public List<Edible> edibles;
 
     private Vector2Int GetVector(float angle)
     {
@@ -31,10 +36,11 @@ public class Snake : MonoBehaviour
     // Start is called before the first frame update
     protected void Start()
     {
+        instance = this;
         if (!Playspace.instance)
             return;
-        _headPosition = Playspace.instance.tileDimensions / 2;
-        
+
+        _headPosition = Playspace.instance.tileDimensions / 2;    
         _headHistory = new Vector2Int[length];
         _directionHistory = new int[length];
 
@@ -46,8 +52,8 @@ public class Snake : MonoBehaviour
         }
         _newDirection = _direction;
 
-        //UpdatePosition();
         GameCore.OnGameTick += UpdatePosition;
+        GameCore.OnGameTick += CheckEdibles;
     }
 
     int GetRotation()
@@ -203,6 +209,34 @@ public class Snake : MonoBehaviour
         DrawSnek();
     }
 
+    void CheckEdibles()
+    {
+        for(int i = 0; i < edibles.Count; i++)
+        {
+            if ((edibles[i].transform.localPosition - _head.transform.localPosition).magnitude < 0.1f)
+            {
+                switch (edibles[i].type)
+                {
+                    case EdibleType.Reverse:
+                        Reverse();
+                        reverse = true;
+                        break;
+                    case EdibleType.Short:
+                        _snekDelta -= 2;
+                        break;
+                    default:
+                        _snekDelta += 2;
+                        break;
+                }
+
+                Destroy(edibles[i].gameObject);
+                edibles.RemoveAt(i);
+                return;
+            }
+        }
+    }
+    
+    
     // Update is called once per frame
     void LateUpdate()
     {

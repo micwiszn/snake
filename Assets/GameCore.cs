@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class GameCore : MonoBehaviour
 {
@@ -10,6 +11,8 @@ public class GameCore : MonoBehaviour
 
     public delegate void GameTick();
     public static event GameTick OnGameTick;
+
+    public UnityEvent onGameTick;
 
     private void Start()
     {
@@ -29,7 +32,10 @@ public class GameCore : MonoBehaviour
         {
             yield return new WaitForSeconds(timeframe);
             if (OnGameTick != null)
+            {
                 OnGameTick();
+                onGameTick.Invoke();
+            }
         }
     }
 }
